@@ -162,12 +162,15 @@ flowchart LR
 
 - 给每一页 slideshow 准备背景图。
 - 可以手动下载图片，也可以调用百炼图像生成 API 自动生成。
+- 可以直接使用 `assets/step-04/` 中的角色参考图、换装图和爆款参考截图。
 - 背景图会保存到 `slides-config.json` 中每页 `imagePath` 指向的位置。
 
 步骤说明：
 
 - 这一步负责解决“画面素材”问题。
 - 如果你已有 Pinterest 或自有图片，可以跳过 `npm run images`，直接把图片放到对应路径。
+- 如果要保持角色一致性，可以使用 `character_reference_three_view.png` 做角色设定参考，再用 `outfit_01.png` 到 `outfit_08.png` 做换装参考。
+- `viral_slideshow_reference.png` 用来辅助判断爆款幻灯片封面、文字位置和内容钩子，不建议直接作为最终背景图。
 - 如果调用百炼生图，脚本会根据每页文案自动组织背景图 prompt。
 - 背景图应该给文字留出干净区域，避免自带大段文字、logo 或水印。
 - 完成标准是：`slides-config.json` 中每个 `imagePath` 都能在本地找到对应图片文件。
@@ -176,12 +179,14 @@ flowchart LR
 
 - `data/slides-config.json`
 - 百炼图像生成配置
+- 可选本地素材：`assets/step-04/`
 
 输出：
 
 - `pinterest_images/<niche>/image_001.jpg`
 - `pinterest_images/<niche>/image_002.jpg`
 - 更多背景图文件
+- 或直接复用 `assets/step-04/*.png`
 
 命令：
 
@@ -194,13 +199,31 @@ npm run images -- data/slides-config.json
 ```mermaid
 flowchart TD
   A["data/slides-config.json"] --> B["读取每页主题和 imagePath"]
-  B --> C["生成背景图 prompt"]
-  C --> D["百炼图像生成 API"]
-  D --> E["返回图片 URL"]
-  E --> F["下载图片"]
-  F --> G["保存到 imagePath"]
-  G --> H["更新 data/slides-config.json"]
+  B --> C{"已有本地素材?"}
+  C -->|是| D["选择 assets/step-04 图片"]
+  C -->|否| E["生成背景图 prompt"]
+  E --> F["百炼图像生成 API"]
+  F --> G["返回图片 URL"]
+  G --> H["下载图片"]
+  H --> I["保存到 imagePath"]
+  D --> I
+  I --> J["更新 data/slides-config.json"]
 ```
+
+第 4 步示例素材：
+
+<p>
+  <img src="../assets/step-04/character_reference_three_view.png" width="220" alt="角色三视图参考">
+  <img src="../assets/step-04/outfit_01.png" width="140" alt="换装参考 01">
+  <img src="../assets/step-04/outfit_02.png" width="140" alt="换装参考 02">
+  <img src="../assets/step-04/outfit_03.png" width="140" alt="换装参考 03">
+  <img src="../assets/step-04/outfit_04.png" width="140" alt="换装参考 04">
+  <img src="../assets/step-04/outfit_05.png" width="140" alt="换装参考 05">
+  <img src="../assets/step-04/outfit_06.png" width="140" alt="换装参考 06">
+  <img src="../assets/step-04/outfit_07.png" width="140" alt="换装参考 07">
+  <img src="../assets/step-04/outfit_08.png" width="140" alt="换装参考 08">
+  <img src="../assets/step-04/viral_slideshow_reference.png" width="220" alt="爆款幻灯片参考截图">
+</p>
 
 ## 步骤 5：本地渲染 PNG
 

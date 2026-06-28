@@ -25,7 +25,7 @@
    生成 `slides-config.json`，包含每页文案、字号、位置、caption、图片路径和视觉搜索词。
 
 4. **背景图生成**
-   根据每页主题调用百炼图像生成 API，自动保存到 `imagePath` 指定的位置。
+   根据每页主题调用百炼图像生成 API，自动保存到 `imagePath` 指定的位置；也可以直接使用第 4 步内置的角色参考图、换装图和爆款参考截图。
 
 5. **本地图片渲染**
    使用 Node.js Canvas 将背景图和文字叠加，批量输出 9:16 PNG。
@@ -186,6 +186,27 @@ npm run images -- data/slides-config.json
 
 脚本会逐页调用百炼图像生成 API，并把背景图保存到 `slides-config.json` 中每页的 `imagePath`。
 
+如果已经有可用图片，也可以跳过自动生图，把图片路径直接写入 `slides-config.json` 的 `imagePath`。本仓库已内置一组第 4 步示例素材：
+
+- 角色三视图：`assets/step-04/character_reference_three_view.png`
+- 换装参考：`assets/step-04/outfit_01.png` 到 `assets/step-04/outfit_08.png`
+- 爆款幻灯片参考截图：`assets/step-04/viral_slideshow_reference.png`
+
+示例图：
+
+<p>
+  <img src="assets/step-04/character_reference_three_view.png" width="220" alt="角色三视图参考">
+  <img src="assets/step-04/outfit_01.png" width="140" alt="换装参考 01">
+  <img src="assets/step-04/outfit_02.png" width="140" alt="换装参考 02">
+  <img src="assets/step-04/outfit_03.png" width="140" alt="换装参考 03">
+  <img src="assets/step-04/outfit_04.png" width="140" alt="换装参考 04">
+  <img src="assets/step-04/outfit_05.png" width="140" alt="换装参考 05">
+  <img src="assets/step-04/outfit_06.png" width="140" alt="换装参考 06">
+  <img src="assets/step-04/outfit_07.png" width="140" alt="换装参考 07">
+  <img src="assets/step-04/outfit_08.png" width="140" alt="换装参考 08">
+  <img src="assets/step-04/viral_slideshow_reference.png" width="220" alt="爆款幻灯片参考截图">
+</p>
+
 ### 5. 渲染最终 PNG
 
 ```bash
@@ -279,6 +300,12 @@ npm run video:poll   # 查询并下载视频结果
 ├── docs/
 │   ├── FLOWCHART.md
 │   └── ARTICLE_ZH_LOCALIZED.md
+├── assets/
+│   └── step-04/
+│       ├── character_reference_three_view.png
+│       ├── outfit_01.png
+│       ├── ...
+│       └── viral_slideshow_reference.png
 ├── .env.example
 ├── package.json
 ├── data/
