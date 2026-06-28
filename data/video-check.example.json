@@ -1,0 +1,7 @@
+{
+  "video": "output/video/doll_motion_wan27_videoedit.mp4",
+  "contactSheet": "output/video/doll_motion_contact_sheet.jpg",
+  "fps": 1,
+  "tile": "5x2",
+  "scale": "180:-1"
+}

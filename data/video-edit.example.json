@@ -1,0 +1,16 @@
+{
+  "mode": "edit",
+  "model": "wan2.7-videoedit",
+  "video": "output/reference/reference_motion_9s.mp4",
+  "refImage": "assets/step-04/character_reference_three_view.png",
+  "prompt": "Replace the main person in the input video with the exact character from the reference image. Preserve the original video action as faithfully as possible: same choreography, timing, rhythm, walking or dancing motion, body dynamics, camera framing, motion blur, speed, and energetic feel. Keep the original scene layout and camera motion. Only replace the protagonist identity and outfit with the reference character.",
+  "negativePrompt": "static pose, different motion, changed choreography, slow motion, missing motion, extra people, extra limbs, distorted body, wrong character, changed background, text, logo, watermark, low quality",
+  "parameters": {
+    "resolution": "720P",
+    "ratio": "9:16",
+    "duration": 9,
+    "audioSetting": "origin",
+    "watermark": false
+  },
+  "download": "output/video/doll_motion_wan27_videoedit.mp4"
+}

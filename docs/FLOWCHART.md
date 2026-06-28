@@ -1,6 +1,6 @@
 # TikTok 幻灯片内容生产流程图
 
-这份文档把当前 skill 的完整能力拆成 7 个步骤。每个步骤都说明它做什么、输入是什么、输出是什么、对应命令是什么，并配一张示意图。
+这份文档把当前 skill 的完整能力拆成 10 个步骤。每个步骤都说明它做什么、输入是什么、输出是什么、对应命令是什么，并配一张示意图。
 
 ## 总流程图
 
@@ -15,9 +15,13 @@ flowchart TD
   F --> H["6. 本地渲染 PNG"]
   G --> H
   H --> I{"是否需要视频版本？"}
-  I -->|是| J["7A. 创建并轮询视频任务"]
-  I -->|否| K["7B. 手动发布图片素材"]
-  J --> K
+  I -->|普通短视频| J["7A. 创建并轮询视频任务"]
+  I -->|参考动作换主体| K["7B. 下载参考视频"]
+  K --> L["8. 准备动作参考"]
+  L --> M["9. 参考视频生成 / 视频编辑"]
+  J --> N["10. 视频校验与发布"]
+  M --> N
+  I -->|否| N
 ```
 
 ## 步骤 1：爆款参考整理
@@ -321,10 +325,143 @@ flowchart TD
   G -->|"FAILED"| J["查看错误信息"]
 ```
 
-## 步骤 7：人工发布与复盘
+## 步骤 7：视频下载
 
 做什么：
 
+- 下载外部参考视频，作为动作参考素材。
+- 如果平台链接不能直连下载，也可以先用本机下载工具拿到 mp4，再进入下一步。
+
+步骤说明：
+
+- 这一步对应实际会话里的 `video-downloader` 能力。
+- 仓库内置脚本支持直接 mp4/mov/webm 链接下载。
+- 输出文件建议放在 `output/reference/`，避免把大视频提交进 Git。
+- 完成标准是：本地存在可被 `ffmpeg` 读取的参考视频。
+
+输入：
+
+- `data/video-download.example.json`
+- 直接视频 URL
+
+输出：
+
+- `output/reference/reference_motion_raw.mp4`
+
+命令：
+
+```bash
+npm run video:download -- data/video-download.example.json
+```
+
+示意图：
+
+```mermaid
+flowchart LR
+  A["视频 URL"] --> B["scripts/download-video.mjs"]
+  B --> C["fetch 下载"]
+  C --> D["output/reference/reference_motion_raw.mp4"]
+```
+
+## 步骤 8：动作参考准备
+
+做什么：
+
+- 用 `ffmpeg` 裁剪动作片段。
+- 抽第一帧和 contact sheet，检查人体是否清晰、动作是否连续、开头是否适合模型检测。
+- 用 `ffprobe` 输出视频参数。
+
+步骤说明：
+
+- 这一步对应实际会话里的 `ffmpeg` / `ffprobe` 工具调用。
+- 如果要跑 `wan2.2-animate-mix`，参考视频最好是单人、人体清晰、正面或接近正面开头。
+- 如果检测失败并返回 `InvalidVideo.NoHuman` 或 `InvalidVideo.FrontBody`，优先改用 `wan2.7-videoedit`。
+- 完成标准是：得到裁剪后参考视频、第一帧、contact sheet 和视频参数。
+
+输入：
+
+- `data/motion-reference.example.json`
+- `output/reference/reference_motion_raw.mp4`
+
+输出：
+
+- `output/reference/reference_motion_9s.mp4`
+- `output/reference/reference_motion_first.jpg`
+- `output/reference/reference_motion_contact.jpg`
+
+命令：
+
+```bash
+npm run video:motion -- data/motion-reference.example.json
+```
+
+示意图：
+
+```mermaid
+flowchart LR
+  A["原始参考视频"] --> B["ffmpeg 裁剪"]
+  B --> C["动作片段"]
+  C --> D["抽第一帧"]
+  C --> E["生成 contact sheet"]
+  C --> F["ffprobe 参数检查"]
+```
+
+## 步骤 9：参考视频生成和主体替换
+
+做什么：
+
+- 用 `bl video ref` 尝试动作迁移。
+- 用 `bl video edit` 做视频编辑和主体替换。
+- 输入参考视频和角色图，尽量保留原动作、镜头、节奏、背景和音频。
+
+步骤说明：
+
+- 这一步对应实际会话里的 `bl` CLI 视频工具调用。
+- `wan2.2-animate-mix` 更像专用动作迁移，要求参考视频质量更严格。
+- `wan2.7-videoedit` 更适合“参考视频动作 + 参考图换主角”的通用主体替换。
+- `duration` 不要超过输入视频真实时长。
+- 完成标准是：`output/video/` 下出现下载好的生成视频。
+
+输入：
+
+- `data/video-ref.example.json`
+- `data/video-edit.example.json`
+- `output/reference/reference_motion_9s.mp4`
+- `assets/step-04/character_reference_three_view.png`
+
+输出：
+
+- `output/video/doll_motion_animate_mix.mp4`
+- `output/video/doll_motion_wan27_videoedit.mp4`
+
+命令：
+
+```bash
+npm run video:ref -- data/video-ref.example.json
+npm run video:edit -- data/video-edit.example.json
+```
+
+示意图：
+
+```mermaid
+flowchart TD
+  A["动作参考视频"] --> C{"选择模型"}
+  B["角色参考图"] --> C
+  C -->|"人体清晰 / 正面开头"| D["wan2.2-animate-mix"]
+  C -->|"背影 / 侧身 / 检测失败"| E["wan2.7-videoedit"]
+  D --> F["bl video ref"]
+  E --> G["bl video edit"]
+  F --> H["下载生成视频"]
+  G --> H
+  H --> I["output/video/"]
+```
+
+## 步骤 10：视频校验、人工发布与复盘
+
+做什么：
+
+- 用 `ffprobe` 检查生成视频参数。
+- 用 `ffmpeg` 抽 contact sheet，快速肉眼检查主体替换和动作连续性。
 - 把生成的 PNG 或视频手动上传到 TikTok、Reels、Shorts 等平台。
 - 发布后记录表现，继续作为下一轮爆款拆解输入。
 - 用真实数据更新下一轮 `viral-references.json`。
@@ -332,6 +469,7 @@ flowchart TD
 步骤说明：
 
 - 这一步把素材放到真实平台里验证。
+- 校验重点是 9:16、主体一致、动作连续、无明显畸形、无文字水印。
 - 建议记录发布时间、标题、封面、播放量、完播、收藏、评论和转粉情况。
 - 评论区问题很重要，它能反推出用户真正关心的下一组选题。
 - 表现好的内容不要只复刻表面文案，要回到第一步记录它的结构和触发点。
@@ -341,24 +479,35 @@ flowchart TD
 
 - `output/slide_*.png`
 - `output/video/*`
+- `data/video-check.example.json`
 - 平台发布结果
 
 输出：
 
+- `output/video/*_contact_sheet.jpg`
 - 新一轮参考记录
 - 下一轮内容迭代方向
+
+命令：
+
+```bash
+npm run video:check -- data/video-check.example.json
+```
 
 示意图：
 
 ```mermaid
 flowchart LR
-  A["output/slide_*.png"] --> C["手动上传平台"]
-  B["output/video/*"] --> C
-  C --> D["发布"]
-  D --> E["观察播放 / 收藏 / 评论"]
-  E --> F["记录有效模式"]
-  F --> G["更新 data/viral-references.json"]
-  G --> H["进入下一轮爆款拆解"]
+  A["output/video/*"] --> B["ffprobe 参数检查"]
+  A --> C["ffmpeg 抽 contact sheet"]
+  D["output/slide_*.png"] --> E["手动上传平台"]
+  B --> E
+  C --> E
+  E --> F["发布"]
+  F --> G["观察播放 / 收藏 / 评论"]
+  G --> H["记录有效模式"]
+  H --> I["更新 data/viral-references.json"]
+  I --> J["进入下一轮爆款拆解"]
 ```
 
 ## 数据流总览
@@ -374,6 +523,10 @@ flowchart TD
   G --> H["data/video-task.created.json"]
   H --> I["data/video-task.result.json"]
   I --> J["output/video/"]
+  F --> K["output/reference/reference_motion_raw.mp4"]
+  K --> L["output/reference/reference_motion_9s.mp4"]
+  L --> M["bl video ref / bl video edit"]
+  M --> J
 ```
 
 ## 能力与脚本对应表
@@ -384,5 +537,10 @@ flowchart TD
 | 幻灯片方案 | `scripts/generate-plan.mjs` | `npm run plan` | `slides-config.json` |
 | 背景图生成 | `scripts/generate-images.mjs` | `npm run images` | 背景图文件 |
 | 图片渲染 | `scripts/render-slides.mjs` | `npm run render` | `output/slide_*.png` |
+| 视频下载 | `scripts/download-video.mjs` | `npm run video:download` | `output/reference/*.mp4` |
+| 动作参考准备 | `scripts/prepare-motion-reference.mjs` | `npm run video:motion` | 参考视频 / 第一帧 / contact sheet |
+| 参考视频生成 | `scripts/run-bl-video.mjs` | `npm run video:ref` | 动作迁移视频 |
+| 视频编辑主体替换 | `scripts/run-bl-video.mjs` | `npm run video:edit` | 主体替换视频 |
 | 视频任务创建 | `scripts/create-video-task.mjs` | `npm run video:create` | `video-task.created.json` |
 | 视频任务轮询 | `scripts/poll-task.mjs` | `npm run video:poll` | `video-task.result.json` / 视频文件 |
+| 视频校验 | `scripts/check-video.mjs` | `npm run video:check` | 视频参数 / contact sheet |

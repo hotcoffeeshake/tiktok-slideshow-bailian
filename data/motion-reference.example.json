@@ -1,0 +1,11 @@
+{
+  "inputVideo": "output/reference/reference_motion_raw.mp4",
+  "trimStart": 0,
+  "duration": 9,
+  "outputVideo": "output/reference/reference_motion_9s.mp4",
+  "contactSheet": "output/reference/reference_motion_contact.jpg",
+  "firstFrame": "output/reference/reference_motion_first.jpg",
+  "contactSheetFps": 1,
+  "contactSheetTile": "5x3",
+  "contactSheetScale": "180:-1"
+}

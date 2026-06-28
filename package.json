@@ -8,8 +8,13 @@
     "images": "node scripts/generate-images.mjs",
     "plan": "node scripts/generate-plan.mjs",
     "render": "node scripts/render-slides.mjs",
+    "video:check": "node scripts/check-video.mjs",
     "video:create": "node scripts/create-video-task.mjs",
-    "video:poll": "node scripts/poll-task.mjs"
+    "video:download": "node scripts/download-video.mjs",
+    "video:edit": "node scripts/run-bl-video.mjs",
+    "video:motion": "node scripts/prepare-motion-reference.mjs",
+    "video:poll": "node scripts/poll-task.mjs",
+    "video:ref": "node scripts/run-bl-video.mjs"
   },
   "dependencies": {
     "@napi-rs/canvas": "^1.0.1",

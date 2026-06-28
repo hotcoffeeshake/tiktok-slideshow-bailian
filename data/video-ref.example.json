@@ -1,0 +1,14 @@
+{
+  "mode": "ref",
+  "model": "wan2.2-animate-mix",
+  "image": "assets/step-04/character_reference_three_view.png",
+  "refVideo": "output/reference/reference_motion_9s.mp4",
+  "prompt": "Image 1 is the target character. Video 1 is the driving motion reference. Replace the dancer or protagonist in Video 1 with the exact character from Image 1. Preserve the original choreography, timing, rhythm, action speed, body pose sequence, gestures, stepping, camera framing, motion blur, kinetic energy, and dynamic dance feeling from Video 1. Keep the output vertical 9:16. The motion should be as close to Video 1 as possible.",
+  "parameters": {
+    "resolution": "720P",
+    "ratio": "9:16",
+    "duration": 9,
+    "watermark": false
+  },
+  "download": "output/video/doll_motion_animate_mix.mp4"
+}

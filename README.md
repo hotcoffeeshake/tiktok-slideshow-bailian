@@ -1,6 +1,6 @@
 # TikTok 幻灯片内容生产流水线
 
-这是一个基于阿里云百炼 API 和本地 Node.js 脚本的 TikTok slideshow 内容生产工具。它可以从参考内容拆解开始，生成内容方案、背景图、9:16 幻灯片图片，也可以进一步创建短视频生成任务。
+这是一个基于阿里云百炼 API、本地 Node.js 脚本和 `bl` CLI 的 TikTok slideshow 内容生产工具。它可以从参考内容拆解开始，生成内容方案、背景图、9:16 幻灯片图片，也可以进一步创建短视频生成、动作参考和主体替换任务。
 
 最终产物包括：
 
@@ -10,8 +10,9 @@
 - 背景图
 - 1080x1920 PNG 幻灯片
 - 可选短视频素材
+- 动作参考视频和主体替换视频
 
-详细流程图见 [docs/FLOWCHART.md](docs/FLOWCHART.md)，完整说明文档见 [docs/ARTICLE_ZH_LOCALIZED.md](docs/ARTICLE_ZH_LOCALIZED.md)。
+详细流程图见 [docs/FLOWCHART.md](docs/FLOWCHART.md)，视频工作流见 [docs/VIDEO_WORKFLOW.md](docs/VIDEO_WORKFLOW.md)，完整说明文档见 [docs/ARTICLE_ZH_LOCALIZED.md](docs/ARTICLE_ZH_LOCALIZED.md)。
 
 ## 现在可以做什么
 
@@ -33,7 +34,13 @@
 6. **短视频任务**
    创建百炼视频生成异步任务，轮询 `task_id`，成功后下载视频结果。
 
-7. **手动发布素材**
+7. **视频下载和动作参考**
+   下载参考视频，用 `ffmpeg` 裁剪动作段、抽帧、生成 contact sheet，并用 `ffprobe` 检查视频参数。
+
+8. **参考视频换主体**
+   用 `bl video ref` 或 `bl video edit` 输入参考动作视频和角色图，保留动作、镜头、节奏和场景，替换主角。
+
+9. **手动发布素材**
    输出的图片和视频可以手动上传到 TikTok、Reels、Shorts 或其它短内容平台。
 
 ## 用到的能力
@@ -92,6 +99,18 @@ BAILIAN_VIDEO_DURATION=5
 ```
 
 视频生成是异步任务，需要先创建任务，再用 `task_id` 轮询结果。
+
+### `bl` CLI 视频编辑能力
+
+用于参考视频动作和主体替换：
+
+- 下载或复用本地参考视频
+- 裁剪动作片段并抽关键帧
+- 用 `wan2.2-animate-mix` 尝试动作迁移
+- 用 `wan2.7-videoedit` 做视频编辑和主体替换
+- 成功后自动下载视频，并用 `ffprobe` / `ffmpeg` 校验
+
+本能力依赖本机已登录并可用的 `bl` CLI。
 
 ### 本地渲染能力
 
@@ -243,6 +262,46 @@ output/video/
 
 如果状态仍是 `PENDING` 或 `RUNNING`，稍后再次运行 `video:poll`。
 
+### 7. 视频下载、动作参考和主体替换
+
+完整说明见 [docs/VIDEO_WORKFLOW.md](docs/VIDEO_WORKFLOW.md)。
+
+下载参考视频：
+
+```bash
+npm run video:download -- data/video-download.example.json
+```
+
+裁剪动作参考、抽帧并生成 contact sheet：
+
+```bash
+npm run video:motion -- data/motion-reference.example.json
+```
+
+尝试动作迁移：
+
+```bash
+npm run video:ref -- data/video-ref.example.json
+```
+
+使用视频编辑模型替换主体：
+
+```bash
+npm run video:edit -- data/video-edit.example.json
+```
+
+检查生成视频参数并抽帧：
+
+```bash
+npm run video:check -- data/video-check.example.json
+```
+
+实际使用建议：
+
+- `wan2.2-animate-mix` 更适合单人、正面、人体清晰的动作迁移。
+- 参考视频如果从背影、侧身或遮挡开始，优先用 `wan2.7-videoedit`。
+- `duration` 必须小于或等于输入视频真实时长。
+
 ## 输入文件说明
 
 ### `data/viral-references.example.json`
@@ -270,6 +329,26 @@ output/video/
 
 视频生成任务示例。可修改 `model`、`prompt` 和 `parameters` 后提交。
 
+### `data/video-download.example.json`
+
+直接视频链接下载示例。用于把参考动作视频保存到 `output/reference/`。
+
+### `data/motion-reference.example.json`
+
+动作参考预处理示例。用于裁剪参考视频、抽第一帧、生成 contact sheet 和输出视频参数。
+
+### `data/video-ref.example.json`
+
+`bl video ref` 示例。用于参考视频动作迁移，默认模型是 `wan2.2-animate-mix`。
+
+### `data/video-edit.example.json`
+
+`bl video edit` 示例。用于参考动作视频 + 角色图的主体替换，默认模型是 `wan2.7-videoedit`。
+
+### `data/video-check.example.json`
+
+视频结果校验示例。用于 `ffprobe` 参数检查和 `ffmpeg` 抽 contact sheet。
+
 ## 输出文件说明
 
 ```text
@@ -279,6 +358,7 @@ data/slides-config.json         # slideshow 渲染配置
 pinterest_images/<niche>/       # 背景图
 output/                         # 最终 PNG
 output/video/                   # 视频结果
+output/reference/               # 参考视频、关键帧、contact sheet
 ```
 
 ## 命令总览
@@ -288,8 +368,13 @@ npm run analyze      # 爆款拆解
 npm run plan         # 生成 slideshow 方案
 npm run images       # 调用百炼生图
 npm run render       # 本地渲染 PNG
+npm run video:download # 下载参考视频
+npm run video:motion # 裁剪动作参考并抽帧
+npm run video:ref    # 参考视频动作迁移
+npm run video:edit   # 视频编辑和主体替换
 npm run video:create # 创建视频异步任务
 npm run video:poll   # 查询并下载视频结果
+npm run video:check  # 检查视频参数并抽帧
 ```
 
 ## 文件结构
@@ -299,6 +384,7 @@ npm run video:poll   # 查询并下载视频结果
 ├── README.md
 ├── docs/
 │   ├── FLOWCHART.md
+│   ├── VIDEO_WORKFLOW.md
 │   └── ARTICLE_ZH_LOCALIZED.md
 ├── assets/
 │   └── step-04/
@@ -310,18 +396,27 @@ npm run video:poll   # 查询并下载视频结果
 ├── package.json
 ├── data/
 │   ├── input.example.json
+│   ├── motion-reference.example.json
 │   ├── slides-config.sample.json
+│   ├── video-check.example.json
+│   ├── video-download.example.json
+│   ├── video-edit.example.json
+│   ├── video-ref.example.json
 │   ├── viral-references.example.json
 │   └── video-task.example.json
 ├── pinterest_images/
 │   └── finance/
 ├── scripts/
 │   ├── analyze-viral.mjs
+│   ├── check-video.mjs
 │   ├── create-video-task.mjs
+│   ├── download-video.mjs
 │   ├── generate-images.mjs
 │   ├── generate-plan.mjs
+│   ├── prepare-motion-reference.mjs
 │   ├── poll-task.mjs
-│   └── render-slides.mjs
+│   ├── render-slides.mjs
+│   └── run-bl-video.mjs
 └── output/
 ```
 
