@@ -1,0 +1,16 @@
+{
+  "name": "tiktok-slideshow-bailian",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "plan": "node scripts/generate-plan.mjs",
+    "render": "node scripts/render-slides.mjs"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^1.0.1",
+    "dotenv": "^17.2.3",
+    "openai": "^6.10.0"
+  }
+}
+

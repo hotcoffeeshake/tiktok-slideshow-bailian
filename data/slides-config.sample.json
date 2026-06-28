@@ -1,0 +1,54 @@
+{
+  "niche": "personal finance",
+  "pinterestQueries": [
+    "dark luxury lifestyle",
+    "minimal money aesthetic",
+    "city night finance"
+  ],
+  "caption": "A simple saving habit that actually sticks. #personalfinance #moneytips",
+  "slides": [
+    {
+      "imagePath": "./pinterest_images/finance/image_001.jpg",
+      "lines": [
+        { "text": "I saved $5k", "size": 92, "weight": "bold", "y": 820 },
+        { "text": "with one boring habit", "size": 66, "weight": "normal", "y": 940 }
+      ]
+    },
+    {
+      "imagePath": "./pinterest_images/finance/image_002.jpg",
+      "lines": [
+        { "text": "Most people save", "size": 66, "weight": "normal", "y": 820 },
+        { "text": "what is left over", "size": 78, "weight": "bold", "y": 930 }
+      ]
+    },
+    {
+      "imagePath": "./pinterest_images/finance/image_003.jpg",
+      "lines": [
+        { "text": "That is the trap", "size": 84, "weight": "bold", "y": 900 },
+        { "text": "left over usually means zero", "size": 52, "weight": "normal", "y": 1010 }
+      ]
+    },
+    {
+      "imagePath": "./pinterest_images/finance/image_004.jpg",
+      "lines": [
+        { "text": "Move savings first", "size": 82, "weight": "bold", "y": 880 },
+        { "text": "before rent, food, fun", "size": 56, "weight": "normal", "y": 990 }
+      ]
+    },
+    {
+      "imagePath": "./pinterest_images/finance/image_005.jpg",
+      "lines": [
+        { "text": "Start with 10%", "size": 88, "weight": "bold", "y": 880 },
+        { "text": "then raise it slowly", "size": 58, "weight": "normal", "y": 990 }
+      ]
+    },
+    {
+      "imagePath": "./pinterest_images/finance/image_006.jpg",
+      "lines": [
+        { "text": "Save this", "size": 88, "weight": "bold", "y": 860 },
+        { "text": "before payday", "size": 60, "weight": "normal", "y": 970 }
+      ]
+    }
+  ]
+}
+
