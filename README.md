@@ -11,7 +11,7 @@
 - 1080x1920 PNG 幻灯片
 - 可选短视频素材
 
-详细文章版说明见 [docs/ARTICLE_ZH_LOCALIZED.md](docs/ARTICLE_ZH_LOCALIZED.md)。
+详细流程图见 [docs/FLOWCHART.md](docs/FLOWCHART.md)，文章版说明见 [docs/ARTICLE_ZH_LOCALIZED.md](docs/ARTICLE_ZH_LOCALIZED.md)。
 
 ## 现在可以做什么
 
@@ -277,6 +277,7 @@ npm run video:poll   # 查询并下载视频结果
 .
 ├── README.md
 ├── docs/
+│   ├── FLOWCHART.md
 │   └── ARTICLE_ZH_LOCALIZED.md
 ├── .env.example
 ├── package.json
@@ -314,4 +315,3 @@ npm run video:poll   # 查询并下载视频结果
 - 图像、视频与 3D 生成对比：`wiki/comparisons/multimodal-generation-comparison.md`
 - 百炼 API Key 环境变量：`DASHSCOPE_API_KEY`
 - 默认兼容接口地址：`https://dashscope.aliyuncs.com/compatible-mode/v1`
-
