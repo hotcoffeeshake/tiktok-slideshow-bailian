@@ -1,59 +1,59 @@
-# TikTok Slideshow Pipeline with Bailian API
+# 基于百炼 API 的 TikTok 幻灯片生成流程
 
-This repo turns the original TikTok slideshow workflow into a local, Postiz-free pipeline.
+这个项目把原教程里的 TikTok slideshow 工作流改造成一个本地可运行、去掉 Postiz 的版本。
 
-Postiz is removed. Bailian API is used for content planning, hook generation, slide copy, and Pinterest search queries. Final media is rendered locally as 1080x1920 PNG files, then uploaded manually to TikTok.
+Postiz 原本负责社媒排期和发布。本项目不做自动发布，而是使用阿里云百炼 API 负责内容策划、hook 生成、幻灯片文案和 Pinterest 搜索词生成；最终素材在本地渲染成 1080x1920 的 PNG 图片，再手动上传到 TikTok。
 
-## What This Does
+## 可以做什么
 
-1. Mine viral TikTok slideshow patterns manually.
-2. Save the observations in `data/input.json`.
-3. Call Bailian through the OpenAI-compatible API.
-4. Generate a structured slideshow plan:
-   - hook
-   - slide text
-   - caption
-   - Pinterest image search queries
+1. 手动观察 TikTok 上同领域的爆款 slideshow。
+2. 把观察结果写入 `data/input.json`。
+3. 通过百炼 OpenAI 兼容接口调用模型。
+4. 生成结构化 slideshow 方案：
+   - 开头 hook
+   - 每页幻灯片文案
+   - TikTok caption
+   - Pinterest 图片搜索词
    - `slides-config.json`
-5. Render 9:16 PNG slides locally with Node.js Canvas.
-6. Upload the finished slides manually to TikTok.
+5. 使用 Node.js Canvas 在本地渲染 9:16 PNG 图片。
+6. 将生成好的图片手动上传到 TikTok，发布为 slideshow。
 
-## Why Bailian Replaces Postiz Here
+## 为什么用百炼替换 Postiz
 
-Postiz handled distribution and scheduling. This version does not automate publishing.
+Postiz 负责的是分发、排期和发布。本版本不自动连接 TikTok，也不调用社媒发布 API。
 
-Bailian replaces the AI planning part of the workflow:
+百炼在这里负责 AI 策划环节：
 
-- analyzes the niche brief
-- writes hook variations
-- creates short mobile-readable slide copy
-- suggests image search terms
-- outputs machine-readable JSON for rendering
+- 分析你的领域和目标受众
+- 生成可复用的 hook 变体
+- 生成适合手机阅读的短文案
+- 给出 Pinterest 搜图关键词
+- 输出可以被渲染脚本直接读取的 JSON
 
-The publishing step stays manual, which avoids needing social platform API access.
+发布步骤保留为手动操作，这样不需要申请 TikTok API 权限，也不依赖任何社媒排期工具。
 
-## Requirements
+## 环境要求
 
-- Node.js 18+
-- A Bailian API key
-- Pinterest images, or use the built-in fallback backgrounds for testing
+- Node.js 18 或更高版本
+- 阿里云百炼 API Key
+- Pinterest 图片素材；如果只是测试，也可以不放图片，脚本会自动使用内置 fallback 背景
 
-Bailian's OpenAI-compatible endpoint uses:
+百炼 OpenAI 兼容接口默认地址：
 
 ```text
 https://dashscope.aliyuncs.com/compatible-mode/v1
 ```
 
-The API key must be provided through `DASHSCOPE_API_KEY`. Do not hard-code it in source files.
+API Key 必须通过环境变量 `DASHSCOPE_API_KEY` 传入，不要硬编码到源码里。
 
-## Setup
+## 安装
 
 ```bash
 npm install
 cp .env.example .env
 ```
 
-Edit `.env`:
+编辑 `.env`：
 
 ```bash
 DASHSCOPE_API_KEY=sk-your-bailian-api-key
@@ -61,17 +61,17 @@ BAILIAN_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 BAILIAN_MODEL=qwen-plus
 ```
 
-`qwen-plus` is the default because it has a large context window and is suitable for content planning. You can switch to another Bailian model if your account has access.
+默认模型是 `qwen-plus`，因为它上下文窗口较大，适合做内容规划。如果你的百炼账号有其他模型权限，也可以自行替换。
 
-## Create A Brief
+## 创建内容简报
 
-Copy the example:
+复制示例文件：
 
 ```bash
 cp data/input.example.json data/input.json
 ```
 
-Edit `data/input.json`:
+编辑 `data/input.json`：
 
 ```json
 {
@@ -88,17 +88,28 @@ Edit `data/input.json`:
 }
 ```
 
-## Generate The Slide Plan
+字段说明：
+
+- `niche`：内容领域
+- `language`：输出语言
+- `audience`：目标受众
+- `desiredSlideCount`：希望生成的幻灯片页数
+- `sourceSlideshowNotes`：你从爆款视频里观察到的结构、文案和视觉风格
+- `goal`：这组 slideshow 想达成的内容目标
+
+## 生成幻灯片方案
 
 ```bash
 npm run plan -- data/input.json data/slides-config.json
 ```
 
-The script writes `data/slides-config.json` and prints Pinterest search queries.
+脚本会调用百炼 API，生成 `data/slides-config.json`，并在终端输出 Pinterest 搜索词。
 
-## Add Images
+## 添加图片素材
 
-Download Pinterest images manually and place them where the plan expects them:
+根据生成的 Pinterest 搜索词，手动下载图片，并放到配置里对应的路径。
+
+示例：
 
 ```text
 pinterest_images/
@@ -108,15 +119,15 @@ pinterest_images/
     image_003.jpg
 ```
 
-If an image is missing, the renderer uses a simple fallback background, so the pipeline can still be tested.
+如果某张图片不存在，渲染脚本会使用简单的 fallback 背景，因此即使没有图片也可以先跑通流程。
 
-## Render Slides
+## 渲染幻灯片
 
 ```bash
 npm run render -- data/slides-config.json output
 ```
 
-The finished PNG files are written to:
+生成结果会输出到：
 
 ```text
 output/
@@ -125,9 +136,19 @@ output/
   slide_03.png
 ```
 
-Upload these images to TikTok manually as a slideshow post.
+之后将这些图片手动上传到 TikTok，发布为 slideshow。
 
-## File Map
+## 不调用百炼的本地测试
+
+如果只是想验证渲染链路，可以直接使用示例配置：
+
+```bash
+npm run render -- data/slides-config.sample.json output
+```
+
+这一步不需要 API Key，也不会消耗百炼额度。
+
+## 文件结构
 
 ```text
 .
@@ -135,7 +156,8 @@ Upload these images to TikTok manually as a slideshow post.
 ├── .env.example
 ├── package.json
 ├── data/
-│   └── input.example.json
+│   ├── input.example.json
+│   └── slides-config.sample.json
 ├── pinterest_images/
 │   └── finance/
 ├── scripts/
@@ -144,15 +166,15 @@ Upload these images to TikTok manually as a slideshow post.
 └── output/
 ```
 
-## Security
+## 安全注意事项
 
-Never commit `.env` or a real API key. The `.gitignore` file excludes `.env`, `node_modules`, and generated output.
+不要提交 `.env` 或真实 API Key。项目里的 `.gitignore` 已经排除了 `.env`、`node_modules` 和生成的 `output` 目录。
 
-If an API key has been pasted into chat, logs, screenshots, or Git history, rotate it in the Bailian console before using this repo seriously.
+如果 API Key 曾经被贴到聊天、日志、截图或 Git 历史中，正式使用前建议去百炼控制台轮换或作废旧 Key。
 
-## References
+## 参考
 
-- Bailian OpenAI-compatible API: `wiki/concepts/openai-compatible-interface.md`
-- Bailian API key convention: `DASHSCOPE_API_KEY`
-- Default compatible base URL: `https://dashscope.aliyuncs.com/compatible-mode/v1`
+- 百炼 OpenAI 兼容接口：`wiki/concepts/openai-compatible-interface.md`
+- 百炼 API Key 环境变量：`DASHSCOPE_API_KEY`
+- 默认兼容接口地址：`https://dashscope.aliyuncs.com/compatible-mode/v1`
 
