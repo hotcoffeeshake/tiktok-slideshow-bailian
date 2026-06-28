@@ -4,6 +4,8 @@
 
 Postiz 原本负责社媒排期和发布。本项目不做自动发布，而是使用阿里云百炼 API 负责内容策划、hook 生成、幻灯片文案和 Pinterest 搜索词生成；最终素材在本地渲染成 1080x1920 的 PNG 图片，再手动上传到 TikTok。
 
+如果想看更接近文章形式的中文本地化说明，见 [docs/ARTICLE_ZH_LOCALIZED.md](docs/ARTICLE_ZH_LOCALIZED.md)。
+
 ## 可以做什么
 
 1. 手动观察 TikTok 上同领域的爆款 slideshow。
@@ -406,6 +408,8 @@ npm run render -- data/slides-config.sample.json output
 ```text
 .
 ├── README.md
+├── docs/
+│   └── ARTICLE_ZH_LOCALIZED.md
 ├── .env.example
 ├── package.json
 ├── data/
