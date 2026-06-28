@@ -1,298 +1,108 @@
-# 基于百炼 API 的 TikTok 幻灯片生成流程
+# TikTok 幻灯片内容生产流水线
 
-这个项目把原教程里的 TikTok slideshow 工作流改造成一个本地可运行、去掉 Postiz 的版本。
+这是一个基于阿里云百炼 API 和本地 Node.js 脚本的 TikTok slideshow 内容生产工具。它可以从参考内容拆解开始，生成内容方案、背景图、9:16 幻灯片图片，也可以进一步创建短视频生成任务。
 
-Postiz 原本负责社媒排期和发布。本项目不做自动发布，而是使用阿里云百炼 API 负责内容策划、hook 生成、幻灯片文案和 Pinterest 搜索词生成；最终素材在本地渲染成 1080x1920 的 PNG 图片，再手动上传到 TikTok。
+最终产物包括：
 
-如果想看更接近文章形式的中文本地化说明，见 [docs/ARTICLE_ZH_LOCALIZED.md](docs/ARTICLE_ZH_LOCALIZED.md)。
+- 爆款拆解报告
+- 可执行内容简报
+- TikTok slideshow 文案方案
+- 背景图
+- 1080x1920 PNG 幻灯片
+- 可选短视频素材
 
-## 可以做什么
+详细文章版说明见 [docs/ARTICLE_ZH_LOCALIZED.md](docs/ARTICLE_ZH_LOCALIZED.md)。
 
-1. 手动观察 TikTok 上同领域的爆款 slideshow。
-2. 把观察结果写入 `data/input.json`。
-3. 通过百炼 OpenAI 兼容接口调用模型。
-4. 生成结构化 slideshow 方案：
-   - 开头 hook
-   - 每页幻灯片文案
-   - TikTok caption
-   - Pinterest 图片搜索词
-   - `slides-config.json`
-5. 使用 Node.js Canvas 在本地渲染 9:16 PNG 图片。
-6. 将生成好的图片手动上传到 TikTok，发布为 slideshow。
-7. 可选：用百炼图像生成 API 代替 Pinterest 找图。
-8. 可选：用百炼视频生成 API 把某一页或整组主题扩展成短视频。
+## 现在可以做什么
 
-## 为什么用百炼替换 Postiz
+1. **爆款拆解**
+   读取人工整理的 TikTok 参考内容，输出 hook 模式、页面结构、视觉风格和避坑点。
 
-Postiz 负责的是分发、排期和发布。本版本不自动连接 TikTok，也不调用社媒发布 API。
+2. **内容简报生成**
+   把爆款拆解结果转成 `data/input.generated.json`，作为后续生成 slideshow 的输入。
 
-百炼在这里负责 AI 策划环节：
+3. **幻灯片方案生成**
+   生成 `slides-config.json`，包含每页文案、字号、位置、caption、图片路径和视觉搜索词。
 
-- 分析你的领域和目标受众
-- 生成可复用的 hook 变体
-- 生成适合手机阅读的短文案
-- 给出 Pinterest 搜图关键词
-- 输出可以被渲染脚本直接读取的 JSON
+4. **背景图生成**
+   根据每页主题调用百炼图像生成 API，自动保存到 `imagePath` 指定的位置。
 
-发布步骤保留为手动操作，这样不需要申请 TikTok API 权限，也不依赖任何社媒排期工具。
+5. **本地图片渲染**
+   使用 Node.js Canvas 将背景图和文字叠加，批量输出 9:16 PNG。
 
-## 爆款拆解工作流
+6. **短视频任务**
+   创建百炼视频生成异步任务，轮询 `task_id`，成功后下载视频结果。
 
-爆款拆解不是复制原文案，而是提取可复用结构。建议把每条参考内容拆成「可观察事实」和「策略判断」两层，避免凭感觉总结。
+7. **手动发布素材**
+   输出的图片和视频可以手动上传到 TikTok、Reels、Shorts 或其它短内容平台。
 
-### 1. 找参考内容
+## 用到的能力
 
-在 TikTok 里按细分领域搜索，例如：
+### 百炼 OpenAI 兼容接口
 
-- `StudyTok`
-- `GymTok`
-- `BookTok`
-- `FinTok`
-- 你的产品关键词或用户痛点关键词
+用于文本生成和结构化 JSON 输出：
 
-优先看最近仍在增长的 slideshow，而不是只看历史大爆款。记录每条内容的链接、发布时间、点赞/收藏/评论、第一屏截图和完整页数。
+- 爆款内容拆解
+- hook 模式总结
+- slideshow 内容简报
+- 每页文案和 caption
+- Pinterest 搜索词 / 生图提示词方向
 
-### 2. 拆第一屏 hook
-
-第一屏决定是否停留。拆解时至少记录：
-
-- 第一屏主文案：原样记录，不直接复用。
-- hook 类型：问题、强断言、反常识、数字结果、身份点名、痛点放大、FOMO。
-- 情绪触发：好奇、焦虑、共鸣、羞耻、希望、贪婪、紧迫。
-- 视觉框架：人物、场景、物件、截图、暗色/亮色、高对比/低对比。
-- 信息缺口：用户为什么会想继续翻下一页。
-
-### 3. 拆页面结构
-
-常见 slideshow 结构：
-
-```text
-Slide 1: HOOK
-Slide 2: 问题 / 背景 / 反常识
-Slide 3: 关键点 1
-Slide 4: 关键点 2
-Slide 5: 关键点 3
-Slide 6: CTA，如 Save / Follow / Comment
-```
-
-适合录入 `sourceSlideshowNotes` 的格式：
-
-```json
-[
-  "第一屏使用数字结果型 hook：I saved $5k in 6 months。",
-  "第二屏指出常见错误：Most people save what is left over。",
-  "中间页每页只讲一个动作，句子短，居中大字。",
-  "视觉风格是暗色、高对比、生活方式图片，画面文字少。",
-  "最后一页 CTA 是 Save this before payday。"
-]
-```
-
-### 4. 让百炼生成可复用变体
-
-把参考内容写入 `data/viral-references.json`，先运行爆款拆解：
+默认配置：
 
 ```bash
-cp data/viral-references.example.json data/viral-references.json
-npm run analyze -- data/viral-references.json data/viral-analysis.json data/input.generated.json
+BAILIAN_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+BAILIAN_MODEL=qwen-plus
 ```
 
-这个命令会生成两个文件：
+### 百炼图像生成 API
 
-- `data/viral-analysis.json`：可复用的 hook、结构、视觉和避坑总结
-- `data/input.generated.json`：可以直接喂给 slideshow planner 的内容简报
+用于生成每页 slideshow 背景图：
 
-然后继续生成 slideshow 方案：
+- 9:16 竖版背景图
+- 统一视觉风格
+- 适合叠字的留白画面
+- 无文字、无 logo、无水印背景
+
+默认配置：
 
 ```bash
-npm run plan -- data/input.generated.json data/slides-config.json
+BAILIAN_NATIVE_BASE_URL=https://dashscope.aliyuncs.com/api/v1
+BAILIAN_IMAGE_MODEL=qwen-image-2.0-pro
+BAILIAN_IMAGE_SIZE=1080*1920
 ```
 
-百炼会把观察结果转成新的 hook、页面文案、caption 和 Pinterest 搜索词。注意：这里生成的是结构化变体，不应该逐字照抄参考内容。
+### 百炼视频生成 API
 
-## 生图工作流：用百炼替代 Pinterest
+用于把 slideshow 主题扩展成短视频：
 
-默认流程是从 Pinterest 找图。如果你想完全自动化图片来源，可以用百炼图像生成 API 生成每页背景图，再把下载后的图片放进 `pinterest_images/<niche>/`。
+- 文生视频
+- 图生视频
+- 首尾帧视频
+- 参考生视频
+- 动态背景素材
 
-适用场景：
-
-- 找不到合适的 Pinterest 图片
-- 需要统一视觉风格
-- 需要带特定场景、人物、产品或文字的背景图
-- 想生成海报感更强的 slideshow 背景
-
-### 推荐流程
-
-1. 用 `npm run plan` 生成 `data/slides-config.json`。
-2. 从每页文案提炼一条背景图 prompt。
-3. 调用百炼图像生成接口。
-4. 下载返回的图片 URL。
-5. 保存为：
-
-```text
-pinterest_images/
-  finance/
-    image_001.jpg
-    image_002.jpg
-    image_003.jpg
-```
-
-6. 再运行本地渲染：
+默认配置：
 
 ```bash
-npm run images -- data/slides-config.json
-npm run render -- data/slides-config.json output
+BAILIAN_VIDEO_MODEL=wan2.7-t2v
+BAILIAN_VIDEO_RESOLUTION=720P
+BAILIAN_VIDEO_RATIO=9:16
+BAILIAN_VIDEO_DURATION=5
 ```
 
-`npm run images` 会逐页调用百炼图像生成 API，并把图片保存到每页 `imagePath` 指向的位置。生成完成后，`render` 会把这些背景图和文字叠加成最终 PNG。
+视频生成是异步任务，需要先创建任务，再用 `task_id` 轮询结果。
 
-### 背景图 prompt 模板
+### 本地渲染能力
 
-```text
-9:16 vertical TikTok slideshow background, dark luxury lifestyle photography,
-minimal objects, strong contrast, clean empty center area for text overlay,
-no visible text, no watermark, cinematic lighting, realistic texture.
-Topic: [THIS SLIDE TOPIC]
-Emotion: [curiosity / anxiety / hope / FOMO]
-```
+使用 `@napi-rs/canvas` 在本地渲染图片：
 
-### 百炼同步生图示例
-
-千问图像系列、万相 2.6/2.7、Z-Image 等新版图像模型支持同步调用。千问图像系列适合复杂文字和海报风格，但如果后续还要用本项目叠字，建议 prompt 里明确 `no visible text`，避免背景图自带文字干扰。
-
-```bash
-curl --location 'https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation' \
-  --header 'Content-Type: application/json' \
-  --header "Authorization: Bearer $DASHSCOPE_API_KEY" \
-  --data '{
-    "model": "qwen-image-2.0-pro",
-    "input": {
-      "messages": [
-        {
-          "role": "user",
-          "content": [
-            {
-              "text": "9:16 vertical TikTok slideshow background, dark luxury lifestyle photography, minimal objects, strong contrast, clean empty center area for text overlay, no visible text, no watermark, cinematic lighting, realistic texture. Topic: saving money before payday."
-            }
-          ]
-        }
-      ]
-    },
-    "parameters": {
-      "negative_prompt": "low resolution, blurry, distorted hands, extra fingers, messy composition, visible text, watermark, oversaturated, waxy face, obvious AI look",
-      "prompt_extend": true,
-      "watermark": false,
-      "size": "1080*1920"
-    }
-  }'
-```
-
-注意：
-
-- `{WorkspaceId}` 替换为你的百炼业务空间 ID。
-- 模型、Endpoint、API Key 必须属于同一地域。
-- 图像结果 URL 通常需要及时下载保存，不要长期依赖临时链接。
-- 如果使用仅支持异步的图像模型，需要加 `X-DashScope-Async: enable`，拿到 `task_id` 后轮询 `GET /api/v1/tasks/{task_id}`。
-
-## 生视频工作流：把 slideshow 主题扩展成短视频
-
-视频生成不是本项目当前脚本的必需环节，但可以作为扩展：先用 slideshow 工作流得到 hook、分镜和视觉方向，再用百炼视频生成 API 生成 5-15 秒短视频素材。
-
-适用场景：
-
-- 把爆款 slideshow 改成短视频版本
-- 给第一屏 hook 做动态背景
-- 为 TikTok、Reels、Shorts 生成同主题视频
-- 用首帧图生成一段镜头运动视频
-
-### 推荐流程
-
-1. 先完成爆款拆解，得到 hook 和每页主题。
-2. 用百炼生成或手动准备首帧图。
-3. 选择视频模式：
-   - 文生视频：只有文字描述时使用。
-   - 图生视频：已有首帧图，希望让画面动起来。
-   - 首尾帧视频：希望控制开头和结尾构图。
-   - 参考生视频：需要保持角色、产品或视觉风格一致。
-4. 创建视频异步任务。
-5. 轮询 `task_id` 拿到视频 URL。
-6. 下载视频，手动上传 TikTok，或作为 slideshow 背景素材二次编辑。
-
-本仓库提供两个命令：
-
-```bash
-cp data/video-task.example.json data/video-task.json
-npm run video:create -- data/video-task.json data/video-task.created.json
-npm run video:poll -- data/video-task.created.json data/video-task.result.json
-```
-
-- `video:create`：创建百炼视频异步任务，输出 `task_id`
-- `video:poll`：查询任务状态；如果任务成功并返回视频 URL，会下载到 `output/video/`
-
-如果任务仍是 `PENDING` 或 `RUNNING`，间隔一段时间后再次运行 `video:poll`。
-
-### 视频 prompt 模板
-
-```text
-[主体/场景] + [动作] + [环境描述] + [镜头语言] + [视觉风格]
-
-示例：
-A young professional checking a budgeting app at night, city apartment,
-slow push-in camera movement, dark luxury lifestyle lighting,
-realistic cinematic style, high contrast, no text, no watermark.
-```
-
-### 百炼文生视频示例
-
-百炼视频生成统一采用异步任务：创建任务拿 `task_id`，再轮询查询结果。视频通常耗时 1-5 分钟，视频编辑类可能更久。
-
-```bash
-curl --location 'https://dashscope.aliyuncs.com/api/v1/services/aigc/video-generation/video-synthesis' \
-  -H 'X-DashScope-Async: enable' \
-  -H "Authorization: Bearer $DASHSCOPE_API_KEY" \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "model": "wan2.7-t2v",
-    "input": {
-      "prompt": "A young professional checking a budgeting app at night in a city apartment. Slow push-in camera movement, dark luxury lifestyle lighting, realistic cinematic style, high contrast, no visible text, no watermark."
-    },
-    "parameters": {
-      "resolution": "720P",
-      "ratio": "9:16",
-      "prompt_extend": true,
-      "watermark": false,
-      "duration": 5
-    }
-  }'
-```
-
-查询任务：
-
-```bash
-curl -X GET 'https://dashscope.aliyuncs.com/api/v1/tasks/{task_id}' \
-  -H "Authorization: Bearer $DASHSCOPE_API_KEY"
-```
-
-注意：
-
-- 视频生成必须带 `X-DashScope-Async: enable`。
-- `task_id` 通常 24 小时有效，请勿重复提交同一个任务，直接轮询。
-- 不同模型参数不同：万相多用 `resolution`，PixVerse/Vidu 多用 `size`，可灵常用 `aspect_ratio`。
-- `wan2.7-*` 属于新版协议，旧版 `wan2.6-*` / `wanx2.1-*` 不要混用。
-- 部分模型走 `/api/v1/services/aigc/image2video/video-synthesis`，调用前要核对模型文档。
-
-## 环境要求
-
-- Node.js 18 或更高版本
-- 阿里云百炼 API Key
-- Pinterest 图片素材；如果只是测试，也可以不放图片，脚本会自动使用内置 fallback 背景
-
-百炼 OpenAI 兼容接口默认地址：
-
-```text
-https://dashscope.aliyuncs.com/compatible-mode/v1
-```
-
-API Key 必须通过环境变量 `DASHSCOPE_API_KEY` 传入，不要硬编码到源码里。
+- 输出尺寸：1080x1920
+- 自动 cover-fit 背景图
+- 深色蒙版
+- 居中文字叠加
+- 自动换行
+- 缺少背景图时使用 fallback 背景
 
 ## 安装
 
@@ -316,73 +126,19 @@ BAILIAN_VIDEO_RATIO=9:16
 BAILIAN_VIDEO_DURATION=5
 ```
 
-默认模型是 `qwen-plus`，因为它上下文窗口较大，适合做内容规划。如果你的百炼账号有其他模型权限，也可以自行替换。
+不要把真实 API Key 写进源码或提交到 Git。
 
-## 创建内容简报
+## 快速开始
 
-复制示例文件：
+### 1. 只测试本地渲染
 
-```bash
-cp data/input.example.json data/input.json
-```
-
-编辑 `data/input.json`：
-
-```json
-{
-  "niche": "personal finance",
-  "language": "English",
-  "audience": "young professionals who want simple saving habits",
-  "desiredSlideCount": 6,
-  "sourceSlideshowNotes": [
-    "First slide claims a surprising savings result.",
-    "Middle slides explain one practical habit per slide.",
-    "Visual style is dark, high contrast, luxury lifestyle, clean centered text."
-  ],
-  "goal": "Create a TikTok slideshow that teaches one simple money habit."
-}
-```
-
-字段说明：
-
-- `niche`：内容领域
-- `language`：输出语言
-- `audience`：目标受众
-- `desiredSlideCount`：希望生成的幻灯片页数
-- `sourceSlideshowNotes`：你从爆款视频里观察到的结构、文案和视觉风格
-- `goal`：这组 slideshow 想达成的内容目标
-
-## 生成幻灯片方案
+这一步不需要 API Key。
 
 ```bash
-npm run plan -- data/input.json data/slides-config.json
+npm run render -- data/slides-config.sample.json output
 ```
 
-脚本会调用百炼 API，生成 `data/slides-config.json`，并在终端输出 Pinterest 搜索词。
-
-## 添加图片素材
-
-根据生成的 Pinterest 搜索词，手动下载图片，并放到配置里对应的路径。
-
-示例：
-
-```text
-pinterest_images/
-  finance/
-    image_001.jpg
-    image_002.jpg
-    image_003.jpg
-```
-
-如果某张图片不存在，渲染脚本会使用简单的 fallback 背景，因此即使没有图片也可以先跑通流程。
-
-## 渲染幻灯片
-
-```bash
-npm run render -- data/slides-config.json output
-```
-
-生成结果会输出到：
+输出：
 
 ```text
 output/
@@ -391,17 +147,129 @@ output/
   slide_03.png
 ```
 
-之后将这些图片手动上传到 TikTok，发布为 slideshow。
+### 2. 爆款拆解
 
-## 不调用百炼的本地测试
-
-如果只是想验证渲染链路，可以直接使用示例配置：
+复制示例文件：
 
 ```bash
-npm run render -- data/slides-config.sample.json output
+cp data/viral-references.example.json data/viral-references.json
 ```
 
-这一步不需要 API Key，也不会消耗百炼额度。
+编辑 `data/viral-references.json`，填入你观察到的参考内容。
+
+运行：
+
+```bash
+npm run analyze -- data/viral-references.json data/viral-analysis.json data/input.generated.json
+```
+
+输出：
+
+- `data/viral-analysis.json`
+- `data/input.generated.json`
+
+### 3. 生成 slideshow 方案
+
+```bash
+npm run plan -- data/input.generated.json data/slides-config.json
+```
+
+输出：
+
+- `data/slides-config.json`
+
+### 4. 生成背景图
+
+```bash
+npm run images -- data/slides-config.json
+```
+
+脚本会逐页调用百炼图像生成 API，并把背景图保存到 `slides-config.json` 中每页的 `imagePath`。
+
+### 5. 渲染最终 PNG
+
+```bash
+npm run render -- data/slides-config.json output
+```
+
+输出的 PNG 可以直接作为 TikTok slideshow 素材使用。
+
+### 6. 创建短视频任务
+
+复制示例文件：
+
+```bash
+cp data/video-task.example.json data/video-task.json
+```
+
+创建任务：
+
+```bash
+npm run video:create -- data/video-task.json data/video-task.created.json
+```
+
+查询任务：
+
+```bash
+npm run video:poll -- data/video-task.created.json data/video-task.result.json
+```
+
+如果任务成功并返回视频 URL，脚本会下载到：
+
+```text
+output/video/
+```
+
+如果状态仍是 `PENDING` 或 `RUNNING`，稍后再次运行 `video:poll`。
+
+## 输入文件说明
+
+### `data/viral-references.example.json`
+
+用于记录参考内容。
+
+核心字段：
+
+- `niche`：内容领域
+- `language`：输出语言
+- `audience`：目标受众
+- `desiredSlideCount`：目标页数
+- `references`：参考内容列表
+- `goal`：内容目标
+
+### `data/input.example.json`
+
+手动内容简报示例。也可以由 `npm run analyze` 自动生成 `data/input.generated.json`。
+
+### `data/slides-config.sample.json`
+
+本地渲染示例。用于无 API Key 情况下测试图片渲染链路。
+
+### `data/video-task.example.json`
+
+视频生成任务示例。可修改 `model`、`prompt` 和 `parameters` 后提交。
+
+## 输出文件说明
+
+```text
+data/viral-analysis.json        # 爆款拆解报告
+data/input.generated.json       # 生成后的内容简报
+data/slides-config.json         # slideshow 渲染配置
+pinterest_images/<niche>/       # 背景图
+output/                         # 最终 PNG
+output/video/                   # 视频结果
+```
+
+## 命令总览
+
+```bash
+npm run analyze      # 爆款拆解
+npm run plan         # 生成 slideshow 方案
+npm run images       # 调用百炼生图
+npm run render       # 本地渲染 PNG
+npm run video:create # 创建视频异步任务
+npm run video:poll   # 查询并下载视频结果
+```
 
 ## 文件结构
 
@@ -429,11 +297,13 @@ npm run render -- data/slides-config.sample.json output
 └── output/
 ```
 
-## 安全注意事项
+## 注意事项
 
-不要提交 `.env` 或真实 API Key。项目里的 `.gitignore` 已经排除了 `.env`、`node_modules` 和生成的 `output` 目录。
-
-如果 API Key 曾经被贴到聊天、日志、截图或 Git 历史中，正式使用前建议去百炼控制台轮换或作废旧 Key。
+- `.env` 不要提交。
+- 图像和视频模型的地域、模型名、Endpoint、API Key 必须匹配。
+- 视频生成是异步任务，拿到 `task_id` 后轮询即可，不要重复提交同一个任务。
+- 图像和视频结果 URL 建议及时下载保存。
+- 生成内容应复用结构和节奏，不要逐字复制参考内容。
 
 ## 参考
 
@@ -444,3 +314,4 @@ npm run render -- data/slides-config.sample.json output
 - 图像、视频与 3D 生成对比：`wiki/comparisons/multimodal-generation-comparison.md`
 - 百炼 API Key 环境变量：`DASHSCOPE_API_KEY`
 - 默认兼容接口地址：`https://dashscope.aliyuncs.com/compatible-mode/v1`
+
