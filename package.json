@@ -4,8 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "analyze": "node scripts/analyze-viral.mjs",
+    "images": "node scripts/generate-images.mjs",
     "plan": "node scripts/generate-plan.mjs",
-    "render": "node scripts/render-slides.mjs"
+    "render": "node scripts/render-slides.mjs",
+    "video:create": "node scripts/create-video-task.mjs",
+    "video:poll": "node scripts/poll-task.mjs"
   },
   "dependencies": {
     "@napi-rs/canvas": "^1.0.1",
@@ -13,4 +17,3 @@
     "openai": "^6.10.0"
   }
 }
-

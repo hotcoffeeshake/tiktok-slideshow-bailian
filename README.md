@@ -87,10 +87,22 @@ Slide 6: CTA，如 Save / Follow / Comment
 
 ### 4. 让百炼生成可复用变体
 
-把拆解结果写入 `data/input.json`，再运行：
+把参考内容写入 `data/viral-references.json`，先运行爆款拆解：
 
 ```bash
-npm run plan -- data/input.json data/slides-config.json
+cp data/viral-references.example.json data/viral-references.json
+npm run analyze -- data/viral-references.json data/viral-analysis.json data/input.generated.json
+```
+
+这个命令会生成两个文件：
+
+- `data/viral-analysis.json`：可复用的 hook、结构、视觉和避坑总结
+- `data/input.generated.json`：可以直接喂给 slideshow planner 的内容简报
+
+然后继续生成 slideshow 方案：
+
+```bash
+npm run plan -- data/input.generated.json data/slides-config.json
 ```
 
 百炼会把观察结果转成新的 hook、页面文案、caption 和 Pinterest 搜索词。注意：这里生成的是结构化变体，不应该逐字照抄参考内容。
@@ -125,8 +137,11 @@ pinterest_images/
 6. 再运行本地渲染：
 
 ```bash
+npm run images -- data/slides-config.json
 npm run render -- data/slides-config.json output
 ```
+
+`npm run images` 会逐页调用百炼图像生成 API，并把图片保存到每页 `imagePath` 指向的位置。生成完成后，`render` 会把这些背景图和文字叠加成最终 PNG。
 
 ### 背景图 prompt 模板
 
@@ -199,6 +214,19 @@ curl --location 'https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com/api/v1/servi
 4. 创建视频异步任务。
 5. 轮询 `task_id` 拿到视频 URL。
 6. 下载视频，手动上传 TikTok，或作为 slideshow 背景素材二次编辑。
+
+本仓库提供两个命令：
+
+```bash
+cp data/video-task.example.json data/video-task.json
+npm run video:create -- data/video-task.json data/video-task.created.json
+npm run video:poll -- data/video-task.created.json data/video-task.result.json
+```
+
+- `video:create`：创建百炼视频异步任务，输出 `task_id`
+- `video:poll`：查询任务状态；如果任务成功并返回视频 URL，会下载到 `output/video/`
+
+如果任务仍是 `PENDING` 或 `RUNNING`，间隔一段时间后再次运行 `video:poll`。
 
 ### 视频 prompt 模板
 
@@ -277,6 +305,13 @@ cp .env.example .env
 DASHSCOPE_API_KEY=sk-your-bailian-api-key
 BAILIAN_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 BAILIAN_MODEL=qwen-plus
+BAILIAN_NATIVE_BASE_URL=https://dashscope.aliyuncs.com/api/v1
+BAILIAN_IMAGE_MODEL=qwen-image-2.0-pro
+BAILIAN_IMAGE_SIZE=1080*1920
+BAILIAN_VIDEO_MODEL=wan2.7-t2v
+BAILIAN_VIDEO_RESOLUTION=720P
+BAILIAN_VIDEO_RATIO=9:16
+BAILIAN_VIDEO_DURATION=5
 ```
 
 默认模型是 `qwen-plus`，因为它上下文窗口较大，适合做内容规划。如果你的百炼账号有其他模型权限，也可以自行替换。
@@ -375,11 +410,17 @@ npm run render -- data/slides-config.sample.json output
 ├── package.json
 ├── data/
 │   ├── input.example.json
-│   └── slides-config.sample.json
+│   ├── slides-config.sample.json
+│   ├── viral-references.example.json
+│   └── video-task.example.json
 ├── pinterest_images/
 │   └── finance/
 ├── scripts/
+│   ├── analyze-viral.mjs
+│   ├── create-video-task.mjs
+│   ├── generate-images.mjs
 │   ├── generate-plan.mjs
+│   ├── poll-task.mjs
 │   └── render-slides.mjs
 └── output/
 ```

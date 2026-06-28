@@ -1,0 +1,27 @@
+{
+  "niche": "personal finance",
+  "language": "English",
+  "audience": "young professionals who want simple saving habits",
+  "desiredSlideCount": 6,
+  "references": [
+    {
+      "sourceUrl": "https://www.tiktok.com/@example/video/0000000000000000000",
+      "observedMetrics": {
+        "likes": "high",
+        "comments": "many viewers asked for the exact habit",
+        "savedReason": "simple payday checklist"
+      },
+      "firstSlideText": "I saved $5k in 6 months",
+      "slideStructure": [
+        "Hook with a concrete result",
+        "Common mistake: saving what is left over",
+        "One habit per middle slide",
+        "CTA: save before payday"
+      ],
+      "visualStyle": "dark, high contrast, luxury lifestyle photography, centered white text",
+      "notes": "The hook makes the result feel reachable and the middle slides stay practical."
+    }
+  ],
+  "goal": "Create a TikTok slideshow that teaches one simple money habit without copying the source wording."
+}
+

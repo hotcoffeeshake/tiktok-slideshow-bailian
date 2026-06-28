@@ -1,0 +1,12 @@
+{
+  "model": "wan2.7-t2v",
+  "prompt": "A young professional checking a budgeting app at night in a city apartment. Slow push-in camera movement, dark luxury lifestyle lighting, realistic cinematic style, high contrast, no visible text, no watermark.",
+  "parameters": {
+    "resolution": "720P",
+    "ratio": "9:16",
+    "prompt_extend": true,
+    "watermark": false,
+    "duration": 5
+  }
+}
+
