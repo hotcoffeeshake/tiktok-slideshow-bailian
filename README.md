@@ -11,7 +11,7 @@
 - 1080x1920 PNG 幻灯片
 - 可选短视频素材
 
-详细流程图见 [docs/FLOWCHART.md](docs/FLOWCHART.md)，文章版说明见 [docs/ARTICLE_ZH_LOCALIZED.md](docs/ARTICLE_ZH_LOCALIZED.md)。
+详细流程图见 [docs/FLOWCHART.md](docs/FLOWCHART.md)，完整说明文档见 [docs/ARTICLE_ZH_LOCALIZED.md](docs/ARTICLE_ZH_LOCALIZED.md)。
 
 ## 现在可以做什么
 
